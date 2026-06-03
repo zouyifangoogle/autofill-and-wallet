@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chrome Autofill · Bugdroid Collection Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#3DDC84;            /* bugdroid green */
+    --green-deep:#0F9D58;
+    --ink:#1f2329;
+    --muted:#6b7280;
+    --line:#e6e8eb;
+    --card:#ffffff;
+    --bg-top:#7fd8d0;
+    --bg-bot:#f6d59b;
+    --shadow:0 10px 40px rgba(20,30,40,.14);
+    --shadow-lg:0 24px 70px rgba(20,30,40,.28);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"DM Sans",system-ui,sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 500px at 70% -10%, rgba(255,255,255,.55), transparent 60%),
+      linear-gradient(180deg, var(--bg-top) 0%, #bfe6d0 38%, var(--bg-bot) 100%);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:28px 16px 80px;
+  }
+
+  /* ----- Browser chrome mock ----- */
+  .browser{
+    width:100%;
+    max-width:920px;
+    background:#dfe3e8;
+    border-radius:16px;
+    box-shadow:var(--shadow-lg);
+    overflow:hidden;
+    position:relative;
+  }
+  .toolbar{
+    display:flex;align-items:center;gap:14px;
+    padding:12px 16px;background:#dfe3e8;
+  }
+  .dots{display:flex;gap:8px}
+  .dots i{width:12px;height:12px;border-radius:50%;display:block}
+  .dots i:nth-child(1){background:#ff5f57}
+  .dots i:nth-child(2){background:#febc2e}
+  .dots i:nth-child(3){background:#28c840}
+  .urlbar{
+    flex:1;display:flex;align-items:center;gap:8px;
+    background:#fff;border-radius:999px;padding:8px 16px;
+    font-size:13px;color:#5f6368;border:1px solid #cdd2d8;
+  }
+  .urlbar svg{flex:none}
+  .urlbar .pay-chip{
+    margin-left:auto;display:flex;align-items:center;gap:5px;
+    font-weight:600;color:var(--green-deep);font-size:12px;
+  }
+
+  /* ----- Page content (merchant checkout) ----- */
+  .page{background:#f4f6f8;padding:32px;position:relative;min-height:560px}
+  .store{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+  .store .logo{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,#1f2937,#374151);
+    display:grid;place-items:center;color:#fff;font-weight:800;
+    font-family:"Bricolage Grotesque";font-size:18px;
+  }
+  .store h1{
+    font-family:"Bricolage Grotesque";font-weight:800;
+    font-size:20px;margin:0;letter-spacing:-.01em;
+  }
+  .store span{color:var(--muted);font-size:13px;margin-left:auto}
+
+  .grid{display:grid;grid-template-columns:1.4fr 1fr;gap:24px;align-items:start}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--card);border-radius:18px;padding:24px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #eef0f3;
+  }
+  .panel h2{
+    font-family:"Bricolage Grotesque";font-size:16px;font-weight:600;
+    margin:0 0 18px;letter-spacing:-.01em;
+  }
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 6px}
+  .field{position:relative;margin-bottom:16px}
+  input[type=text]{
+    width:100%;padding:13px 14px;border:1.5px solid var(--line);
+    border-radius:11px;font-size:15px;font-family:inherit;color:var(--ink);
+    transition:border-color .15s, box-shadow .15s;background:#fff;
+  }
+  input[type=text]:focus{
+    outline:none;border-color:var(--green);
+    box-shadow:0 0 0 4px rgba(61,220,132,.18);
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .save-row{
+    display:flex;align-items:center;gap:10px;margin:6px 0 22px;
+    font-size:13px;color:var(--ink);cursor:pointer;user-select:none;
+  }
+  .save-row input{width:18px;height:18px;accent-color:var(--green-deep);cursor:pointer}
+  .pay-btn{
+    width:100%;padding:15px;border:none;border-radius:13px;cursor:pointer;
+    background:var(--ink);color:#fff;font-size:15px;font-weight:700;
+    font-family:inherit;letter-spacing:.01em;transition:transform .1s, background .2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .pay-btn:hover{background:#000}
+  .pay-btn:active{transform:scale(.985)}
+  .pay-btn.busy{background:#9aa1a9;cursor:default}
+
+  /* order summary */
+  .summary .line{display:flex;justify-content:space-between;font-size:14px;margin-bottom:12px;color:#3d4450}
+  .summary .total{
+    display:flex;justify-content:space-between;font-weight:700;font-size:16px;
+    border-top:1px solid var(--line);padding-top:14px;margin-top:6px;
+  }
+  .summary .item{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+  .summary .thumb{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,#cfe9dd,#a7d8c2);flex:none;display:grid;place-items:center;font-size:22px}
+  .summary .item b{display:block;font-size:14px}
+  .summary .item small{color:var(--muted);font-size:12px}
+
+  /* ----- Order confirmation page ----- */
+  .confirm{display:none;max-width:520px;margin:6px auto 0;text-align:center}
+  .confirm.show{display:block;animation:rise .45s cubic-bezier(.2,.9,.3,1.1)}
+  .confirm .tick{width:88px;height:88px;border-radius:50%;background:rgba(61,220,132,.14);display:grid;place-items:center;margin:8px auto 20px}
+  .confirm .tick svg{width:50px;height:50px}
+  .confirm.show .tk-p{stroke-dasharray:42;stroke-dashoffset:42;animation:draw .5s .18s forwards cubic-bezier(.2,.9,.3,1)}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .confirm h2{font-family:"Bricolage Grotesque";font-size:28px;font-weight:800;margin:0 0 8px;letter-spacing:-.02em}
+  .confirm p{color:var(--muted);margin:0 0 24px;font-size:15px}
+  .confirm p b{color:var(--ink);font-weight:700}
+  .confirm-card{background:#fff;border:1px solid #eef0f3;border-radius:18px;padding:22px;text-align:left;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:24px}
+  .confirm-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:13px;color:#3d4450}
+  .confirm-row:last-child{margin-bottom:0}
+  .confirm-row b{font-weight:700;color:var(--ink)}
+  .confirm-divider{height:1px;background:var(--line);margin:15px 0}
+  .confirm button{padding:14px 30px;border:none;border-radius:13px;background:var(--ink);color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:background .2s}
+  .confirm button:hover{background:#000}
+
+  /* mini collection teaser in summary */
+  .teaser{
+    margin-top:20px;padding:14px;border-radius:14px;
+    background:linear-gradient(135deg,#0b3d2e,#125c43);color:#fff;position:relative;overflow:hidden;
+  }
+  .teaser::after{content:"";position:absolute;inset:0;background:radial-gradient(120px 80px at 90% -20%,rgba(61,220,132,.5),transparent)}
+  .teaser b{font-family:"Bricolage Grotesque";font-size:13px;display:flex;align-items:center;gap:6px;position:relative}
+  .teaser small{display:block;color:#bfeed4;font-size:11px;margin-top:3px;position:relative}
+  .teaser .mini{display:flex;gap:6px;margin-top:10px;position:relative}
+  .teaser .mini i{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.1);display:grid;place-items:center;overflow:hidden}
+  .teaser .mini i svg{width:26px;height:26px}
+  .teaser .mini i.locked svg{filter:grayscale(1) brightness(.5);opacity:.45}
+
+  /* ----- Chrome Autofill collection popup ----- */
+  .autofill-pop{
+    position:absolute;z-index:40;width:340px;
+    background:#fff;border-radius:14px;box-shadow:var(--shadow-lg);
+    border:1px solid #e3e6ea;overflow:hidden;
+    opacity:0;transform:translateY(-8px) scale(.97);pointer-events:none;
+    transition:opacity .22s ease, transform .22s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .autofill-pop.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+  .ap-fill{
+    display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;
+    border-bottom:1px solid #eef0f3;transition:background .12s;
+  }
+  .ap-fill:hover{background:#f3f8f5}
+  .ap-fill .cc{width:34px;height:24px;border-radius:5px;background:linear-gradient(135deg,#5b6cff,#8e63ff);position:relative;flex:none}
+  .ap-fill .cc::after{content:"";position:absolute;left:5px;top:14px;width:14px;height:4px;border-radius:1px;background:rgba(255,255,255,.7)}
+  .ap-fill b{font-size:14px;font-weight:600}
+  .ap-fill small{display:block;color:var(--muted);font-size:12px}
+  .ap-fill .g{margin-left:auto;font-size:11px;color:#9aa1a9}
+  .ap-fill:last-child{border-bottom:none}
+
+  /* ----- Collection toolbar button (browser-action style) ----- */
+  .toolbar-btn{
+    position:relative;width:36px;height:36px;border-radius:50%;flex:none;
+    border:1px solid #cdd2d8;background:#fff;cursor:pointer;display:grid;place-items:center;
+    transition:background .15s, transform .1s;
+  }
+  .toolbar-btn:hover{background:#f1f8f4}
+  .toolbar-btn:active{transform:scale(.94)}
+  .toolbar-btn .badge{
+    position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:999px;
+    background:var(--green-deep);color:#fff;font-size:10px;font-weight:700;
+    display:grid;place-items:center;padding:0 4px;border:2px solid #dfe3e8;
+  }
+  .toolbar-btn.pulse{animation:btnPulse 1.3s ease 2}
+  @keyframes btnPulse{0%,100%{box-shadow:0 0 0 0 rgba(61,220,132,.55)}50%{box-shadow:0 0 0 8px rgba(61,220,132,0)}}
+
+  /* ----- Doodle collection panel (top-right dropdown) ----- */
+  .doodle-panel{
+    position:absolute;z-index:55;top:56px;right:14px;width:330px;
+    background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);border:1px solid #e3e6ea;
+    overflow:visible;transform-origin:top right;
+    opacity:0;transform:translateY(-10px) scale(.9);pointer-events:none;
+    transition:opacity .24s ease, transform .28s cubic-bezier(.2,.9,.3,1.35);
+  }
+  .doodle-panel.show{opacity:1;transform:none;pointer-events:auto}
+  .doodle-panel .arrow{
+    position:absolute;top:-7px;right:20px;width:14px;height:14px;background:#fff;
+    border-left:1px solid #e3e6ea;border-top:1px solid #e3e6ea;transform:rotate(45deg);
+  }
+  .dp-top{display:flex;align-items:center;gap:8px;padding:14px 16px 4px}
+  .dp-top .pill{
+    font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--green-deep);background:rgba(61,220,132,.14);padding:3px 8px;border-radius:999px;
+  }
+  .dp-top .x{margin-left:auto;cursor:pointer;color:#9aa1a9;font-size:18px;line-height:1;padding:2px 4px}
+
+  .ap-head{display:flex;align-items:center;gap:8px;padding:12px 16px 4px}
+  .ap-head .pill{
+    font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--green-deep);background:rgba(61,220,132,.14);padding:3px 8px;border-radius:999px;
+  }
+  .ap-head .x{margin-left:auto;cursor:pointer;color:#9aa1a9;font-size:18px;line-height:1;padding:2px 4px}
+  .ap-title{font-family:"Bricolage Grotesque";font-weight:600;font-size:15px;padding:0 16px;margin:2px 0 2px}
+  .ap-sub{padding:0 16px;font-size:12px;color:var(--muted);margin-bottom:12px}
+  .ap-sub b{color:var(--green-deep)}
+  .ap-bar{height:7px;border-radius:999px;background:#eef0f3;margin:0 16px 14px;overflow:hidden}
+  .ap-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--green-deep));width:0;transition:width .6s cubic-bezier(.2,.9,.3,1)}
+  .ap-slots{display:flex;justify-content:space-between;gap:8px;padding:0 16px 14px}
+  .slot{flex:1;aspect-ratio:1;border-radius:12px;background:#f3f5f7;display:grid;place-items:center;position:relative;overflow:hidden;border:1.5px solid #eef0f3;transition:transform .2s}
+  .slot svg{width:84%;height:84%}
+  .slot.locked svg{filter:grayscale(1) brightness(.55);opacity:.3}
+  .slot.locked::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 6px,rgba(0,0,0,.025) 6px,rgba(0,0,0,.025) 12px)}
+  .slot.got{background:#eafaf1;border-color:rgba(61,220,132,.4)}
+  .slot.got{animation:pop .4s cubic-bezier(.2,.9,.3,1.4)}
+  .slot.just{border-color:var(--green-deep);box-shadow:0 0 0 3px rgba(61,220,132,.35);animation:justPop .6s cubic-bezier(.2,.9,.3,1.5)}
+  @keyframes justPop{0%{transform:scale(.4) rotate(-12deg)}55%{transform:scale(1.18) rotate(5deg)}100%{transform:scale(1)}}
+  @keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+  .ap-foot{padding:0 16px 14px;font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+
+  /* ----- Award modal ----- */
+  .overlay{
+    position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+    background:rgba(10,20,16,.55);backdrop-filter:blur(3px);
+  }
+  .overlay.show{display:flex;animation:fade .25s}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .award{
+    width:min(420px,92vw);background:#fff;border-radius:26px;padding:34px 30px 28px;
+    text-align:center;box-shadow:var(--shadow-lg);position:relative;
+    animation:rise .4s cubic-bezier(.2,.9,.3,1.1);overflow:hidden;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(24px) scale(.94)}to{opacity:1;transform:none}}
+  .award .glow{
+    position:absolute;top:-60px;left:50%;transform:translateX(-50%);
+    width:280px;height:280px;border-radius:50%;
+    background:radial-gradient(circle,rgba(61,220,132,.35),transparent 65%);
+  }
+  .award .kicker{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--green-deep);position:relative}
+  .award .hero-stage{width:170px;height:190px;margin:10px auto 6px;position:relative}
+  .award .hero-stage svg{width:100%;height:100%;animation:heroIn .7s cubic-bezier(.2,.9,.3,1.3)}
+  @keyframes heroIn{0%{transform:scale(.2) rotate(-30deg);opacity:0}55%{transform:scale(1.1) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+  .award h3{font-family:"Bricolage Grotesque";font-weight:800;font-size:26px;margin:0;letter-spacing:-.02em}
+  .award .role{color:var(--muted);font-size:14px;margin:4px 0 18px}
+  .award .prog{font-size:13px;color:var(--ink);font-weight:600;margin-bottom:6px}
+  .award .pbar{height:8px;border-radius:999px;background:#eef0f3;overflow:hidden;margin:0 auto 22px;max-width:240px}
+  .award .pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--green-deep));width:0;transition:width .7s cubic-bezier(.2,.9,.3,1)}
+  .award button{
+    width:100%;padding:14px;border:none;border-radius:13px;background:var(--ink);
+    color:#fff;font-weight:700;font-size:15px;font-family:inherit;cursor:pointer;transition:background .2s;
+  }
+  .award button:hover{background:#000}
+
+  /* complete celebration */
+  .award.complete .lineup{display:flex;justify-content:center;gap:6px;margin:8px 0 14px}
+  .award.complete .lineup svg{width:54px;height:60px;animation:heroIn .6s cubic-bezier(.2,.9,.3,1.3) backwards}
+  .award.complete .lineup svg:nth-child(1){animation-delay:.05s}
+  .award.complete .lineup svg:nth-child(2){animation-delay:.13s}
+  .award.complete .lineup svg:nth-child(3){animation-delay:.21s}
+  .award.complete .lineup svg:nth-child(4){animation-delay:.29s}
+  .award.complete .lineup svg:nth-child(5){animation-delay:.37s}
+  .reward-chip{
+    display:inline-flex;align-items:center;gap:8px;margin:0 0 18px;
+    padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;
+    background:linear-gradient(135deg,#0b3d2e,#159b6a);color:#fff;
+  }
+
+  /* confetti */
+  .confetti{position:fixed;inset:0;z-index:200;pointer-events:none;overflow:hidden}
+  .confetti i{position:absolute;width:9px;height:14px;border-radius:2px;will-change:transform,opacity}
+
+  /* reset */
+  .reset{
+    position:absolute;bottom:14px;right:16px;z-index:60;font-size:12px;color:#5f6368;
+    background:rgba(255,255,255,.7);border:1px solid #d6dade;border-radius:999px;
+    padding:6px 12px;cursor:pointer;font-family:inherit;backdrop-filter:blur(4px);
+  }
+  .reset:hover{background:#fff}
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;
+    opacity:0;transition:opacity .25s, transform .25s;z-index:150;pointer-events:none;box-shadow:var(--shadow);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="browser">
+  <button class="reset" id="resetBtn">↺ Reset demo</button>
+
+  <!-- Browser toolbar -->
+  <div class="toolbar">
+    <div class="dots"><i></i><i></i><i></i></div>
+    <div class="urlbar">
+      <svg width="12" height="14" viewBox="0 0 12 14" fill="none"><path d="M2 6V4a4 4 0 018 0v2" stroke="#9aa1a9" stroke-width="1.4"/><rect x="1" y="6" width="10" height="7" rx="1.5" fill="#9aa1a9"/></svg>
+      nimbus-outfitters.example<span style="color:#9aa1a9" id="urlPath">/checkout</span>
+      <span class="pay-chip">
+        <svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#3DDC84"/><path d="M8 12l3 3 5-6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Autofill on
+      </span>
+    </div>
+    <!-- Collection toolbar button (browser-action style) -->
+    <button class="toolbar-btn" id="collectBtn" title="Bugdroid Collection">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <rect x="6" y="9" width="12" height="10" rx="3" fill="#3DDC84"/>
+        <rect x="3" y="10" width="2.4" height="6" rx="1.2" fill="#3DDC84"/>
+        <rect x="18.6" y="10" width="2.4" height="6" rx="1.2" fill="#3DDC84"/>
+        <line x1="9" y1="8" x2="7.5" y2="4.5" stroke="#3DDC84" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="15" y1="8" x2="16.5" y2="4.5" stroke="#3DDC84" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="10" cy="13" r="1.1" fill="#fff"/><circle cx="14" cy="13" r="1.1" fill="#fff"/>
+      </svg>
+      <span class="badge" id="collectBadge">0</span>
+    </button>
+  </div>
+
+  <!-- Doodle collection panel — drops from the top-right toolbar button -->
+  <div class="doodle-panel" id="panel">
+    <div class="arrow"></div>
+    <div class="dp-top">
+      <span class="pill">Bugdroid Collection</span>
+      <span class="x" id="panelClose">×</span>
+    </div>
+    <div class="ap-title" id="apTitle">You've collected 0 of 5</div>
+    <div class="ap-sub" id="apSub">Collect <b>5 doodles</b> to unite the squad</div>
+    <div class="ap-bar"><i id="apBar"></i></div>
+    <div class="ap-slots" id="apSlots"></div>
+    <div class="ap-foot">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#9aa1a9" stroke-width="1.6"/><path d="M12 7v6M12 16.5v.5" stroke="#9aa1a9" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Save a card or complete a purchase to unlock the next doodle — collect all 5 to earn a free bugdroid toy.
+    </div>
+  </div>
+
+  <!-- Merchant checkout page -->
+  <div class="page">
+    <div class="store">
+      <div class="logo">N</div>
+      <h1>Nimbus Outfitters</h1>
+      <span>Secure checkout</span>
+    </div>
+
+    <div class="grid" id="checkoutGrid">
+      <!-- Payment panel -->
+      <div class="panel" style="position:relative">
+        <h2>Payment details</h2>
+
+        <div class="field">
+          <label for="cc">Card number</label>
+          <input type="text" id="cc" name="np-cc" autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" readonly placeholder="1234 5678 9012 3456">
+          <!-- Native Chrome autofill dropdown: saved card only -->
+          <div class="autofill-pop" id="pop">
+            <div class="ap-fill" id="apFill">
+              <span class="cc"></span>
+              <span><b>Visa •••• 4242</b><small>Expires 08/29 · Yifan Z.</small></span>
+              <span class="g">G&nbsp;Autofill</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="exp">Expiry</label>
+            <input type="text" id="exp" name="np-exp" autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" readonly placeholder="MM / YY">
+          </div>
+          <div class="field">
+            <label for="cvc">CVC</label>
+            <input type="text" id="cvc" name="np-cvc" autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" readonly placeholder="123">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="name">Name on card</label>
+          <input type="text" id="name" name="np-name" autocomplete="off" data-lpignore="true" data-1p-ignore data-form-type="other" readonly placeholder="Full name">
+        </div>
+
+        <label class="save-row">
+          <input type="checkbox" id="saveCard">
+          Save this card for faster checkout
+        </label>
+
+        <button class="pay-btn" id="payBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h10" stroke="#fff" stroke-width="2" stroke-linecap="round" style="display:none"/></svg>
+          Pay $84.00
+        </button>
+      </div>
+
+      <!-- Order summary -->
+      <div class="panel summary">
+        <h2>Order summary</h2>
+        <div class="item">
+          <div class="thumb">🧥</div>
+          <div><b>Cirrus Shell Jacket</b><small>Size M · Slate</small></div>
+        </div>
+        <div class="line"><span>Subtotal</span><span>$78.00</span></div>
+        <div class="line"><span>Shipping</span><span>$6.00</span></div>
+        <div class="total"><span>Total</span><span>$84.00</span></div>
+      </div>
+    </div>
+
+    <!-- Order confirmation page (shown after Pay) -->
+    <div class="confirm" id="confirmPage">
+      <div class="tick">
+        <svg viewBox="0 0 52 52"><circle class="tk-c" cx="26" cy="26" r="23" fill="none" stroke="#3DDC84" stroke-width="3"/><path class="tk-p" d="M16 27l7 7 14-15" fill="none" stroke="#0F9D58" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>Order confirmed</h2>
+      <p>Thanks! Your order <b id="orderNo">#NMB-0000</b> is on its way.</p>
+      <div class="confirm-card">
+        <div class="confirm-row"><span>Cirrus Shell Jacket · Size M</span><b>$78.00</b></div>
+        <div class="confirm-row"><span>Shipping</span><b>$6.00</b></div>
+        <div class="confirm-divider"></div>
+        <div class="confirm-row"><span>Total paid</span><b>$84.00</b></div>
+        <div class="confirm-row"><span>Payment method</span><b>Visa •••• 4242</b></div>
+        <div class="confirm-row"><span>Arriving</span><b>Jun 6 – Jun 9</b></div>
+      </div>
+      <button id="continueBtn">Continue shopping</button>
+    </div>
+  </div>
+</div>
+
+<!-- Award / completion modal -->
+<div class="overlay" id="overlay">
+  <div class="award" id="awardCard"></div>
+</div>
+
+<div class="confetti" id="confetti"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   Bugdroid heroes — original superhero-archetype Android bots.
+   Each returns the inner SVG markup; viewBox is 0 0 200 220.
+   ============================================================ */
+
+function bugBase(c){return `
+  <line x1="70" y1="48" x2="58" y2="22" stroke="${c}" stroke-width="6" stroke-linecap="round"/>
+  <line x1="130" y1="48" x2="142" y2="22" stroke="${c}" stroke-width="6" stroke-linecap="round"/>
+  <path d="M55 80 a45 45 0 0 1 90 0 z" fill="${c}"/>
+  <rect x="55" y="86" width="90" height="80" rx="16" fill="${c}"/>
+  <rect x="34" y="90" width="16" height="58" rx="8" fill="${c}"/>
+  <rect x="150" y="90" width="16" height="58" rx="8" fill="${c}"/>
+  <rect x="74" y="160" width="16" height="46" rx="8" fill="${c}"/>
+  <rect x="110" y="160" width="16" height="46" rx="8" fill="${c}"/>
+`;}
+function eyes(){return `<circle cx="82" cy="64" r="6" fill="#fff"/><circle cx="118" cy="64" r="6" fill="#fff"/>`;}
+
+const HEROES = [
+  {
+    id:"volt", name:"Volt", role:"The Speedster",
+    color:"#E53935", accent:"#FFD54F",
+    svg(){return `<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+      ${bugBase(this.color)}
+      ${eyes()}
+      <!-- mask stripe -->
+      <rect x="62" y="56" width="76" height="9" rx="4" fill="#fff" opacity=".25"/>
+      <!-- lightning emblem -->
+      <path d="M106 96 L86 128 L99 128 L94 154 L118 118 L104 118 Z" fill="${this.accent}" stroke="#b71c1c" stroke-width="1.5" stroke-linejoin="round"/>
+      <!-- ear wings -->
+      <path d="M58 60 l-16 -4 14 12 z" fill="${this.accent}"/>
+      <path d="M142 60 l16 -4 -14 12 z" fill="${this.accent}"/>
+    </svg>`;}
+  },
+  {
+    id:"reef", name:"Reef", role:"The Tide Guardian",
+    color:"#159B8A", accent:"#F4B740",
+    svg(){return `<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+      ${bugBase(this.color)}
+      ${eyes()}
+      <!-- crown -->
+      <path d="M72 44 l6 -16 8 12 8 -16 8 16 8 -12 6 16 z" fill="${this.accent}"/>
+      <!-- scale emblem -->
+      <circle cx="100" cy="120" r="15" fill="none" stroke="${this.accent}" stroke-width="4"/>
+      <path d="M92 120 q8 -10 16 0 q-8 10 -16 0" fill="${this.accent}"/>
+      <!-- trident in right hand -->
+      <rect x="171" y="70" width="5" height="92" rx="2.5" fill="${this.accent}"/>
+      <path d="M163 78 v-16 M173.5 78 v-22 M184 78 v-16" stroke="${this.accent}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M161 64 h26" stroke="${this.accent}" stroke-width="5" stroke-linecap="round"/>
+    </svg>`;}
+  },
+  {
+    id:"nox", name:"Nox", role:"The Night Sentinel",
+    color:"#37474F", accent:"#FFCA28", cape:"#263238",
+    svg(){return `<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- cape behind -->
+      <path d="M58 92 q-34 50 -10 104 l30 -18 q-12 -44 0 -86 z" fill="${this.cape}"/>
+      <path d="M142 92 q34 50 10 104 l-30 -18 q12 -44 0 -86 z" fill="${this.cape}"/>
+      ${bugBase(this.color)}
+      <!-- pointed ears -->
+      <path d="M70 50 l-2 -22 14 14 z" fill="${this.color}"/>
+      <path d="M130 50 l2 -22 -14 14 z" fill="${this.color}"/>
+      ${eyes()}
+      <!-- utility belt -->
+      <rect x="55" y="138" width="90" height="12" fill="${this.accent}"/>
+      <rect x="93" y="135" width="14" height="18" rx="3" fill="#fbc02d" stroke="#5d4037" stroke-width="1.5"/>
+      <!-- chest emblem -->
+      <ellipse cx="100" cy="110" rx="16" ry="11" fill="${this.accent}"/>
+      <path d="M88 110 q6 -8 12 0 q-3 4 -6 4 q-3 0 -6 -4 z" fill="${this.color}"/>
+    </svg>`;}
+  },
+  {
+    id:"circuit", name:"Circuit", role:"The Machine",
+    color:"#90A4AE", accent:"#FF5252", dark:"#546E7A",
+    svg(){return `<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+      ${bugBase(this.color)}
+      <!-- left normal eye, right glowing red -->
+      <circle cx="82" cy="64" r="6" fill="#fff"/>
+      <circle cx="118" cy="64" r="8" fill="${this.accent}"/>
+      <circle cx="118" cy="64" r="13" fill="none" stroke="${this.accent}" stroke-width="2" opacity=".5"/>
+      <!-- mech panel lines -->
+      <rect x="64" y="98" width="72" height="3" rx="1.5" fill="${this.dark}"/>
+      <rect x="64" y="112" width="46" height="3" rx="1.5" fill="${this.dark}"/>
+      <rect x="64" y="126" width="60" height="3" rx="1.5" fill="${this.dark}"/>
+      <circle cx="124" cy="120" r="9" fill="${this.dark}"/>
+      <circle cx="124" cy="120" r="4" fill="${this.accent}"/>
+      <!-- shoulder cannon on right arm -->
+      <rect x="146" y="86" width="24" height="20" rx="5" fill="${this.dark}"/>
+      <circle cx="168" cy="96" r="5" fill="${this.accent}"/>
+    </svg>`;}
+  },
+  {
+    id:"astra", name:"Astra", role:"The Champion",
+    color:"#C62828", accent:"#F4C430", blue:"#1565C0",
+    svg(){return `<svg viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+      ${bugBase(this.color)}
+      <!-- lower body blue -->
+      <path d="M55 140 h90 v10 a16 16 0 0 1 -16 16 h-58 a16 16 0 0 1 -16 -16 z" fill="${this.blue}"/>
+      ${eyes()}
+      <!-- tiara -->
+      <rect x="62" y="52" width="76" height="8" rx="4" fill="${this.accent}"/>
+      <path d="M100 48 l5 9 -10 0 z" fill="${this.accent}"/>
+      <circle cx="100" cy="56" r="3" fill="${this.color}"/>
+      <!-- star emblem -->
+      <path d="M100 98 l5 12 13 0 -10 8 4 13 -12 -8 -12 8 4 -13 -10 -8 13 0 z" fill="${this.accent}"/>
+      <!-- lasso in hand -->
+      <ellipse cx="40" cy="160" rx="13" ry="9" fill="none" stroke="${this.accent}" stroke-width="4"/>
+      <path d="M42 90 q-22 30 -10 64" fill="none" stroke="${this.accent}" stroke-width="4"/>
+    </svg>`;}
+  }
+];
+
+/* ============================================================
+   State + rendering
+   ============================================================ */
+const TOTAL = HEROES.length;
+let collected = [];                // start with nothing collected
+let lastUnlocked = null;           // id of most recently unlocked doodle (for highlight)
+let popDismissed = false;
+
+const $ = id => document.getElementById(id);
+
+function isGot(id){return collected.includes(id);}
+function nextHero(){return HEROES.find(h=>!isGot(h.id));}
+
+function renderPopup(){
+  const n = collected.length;
+  $("apTitle").textContent = `You've collected ${n} of ${TOTAL}`;
+  const left = TOTAL - n;
+  $("apSub").innerHTML = n===0
+    ? `Collect <b>all 5</b> to unite the squad`
+    : left>0
+      ? `Collect <b>${left} more</b> to unite the squad`
+      : `<b>Complete!</b> The whole squad is united 🎉`;
+  $("apBar").style.width = (n/TOTAL*100)+"%";
+
+  $("apSlots").innerHTML = HEROES.map(h=>{
+    const got = isGot(h.id);
+    const just = h.id === lastUnlocked ? " just" : "";
+    return `<div class="slot ${got?'got':'locked'}${just}" title="${got?h.name:'Locked'}">${h.svg()}</div>`;
+  }).join("");
+
+  // toolbar badge
+  $("collectBadge").textContent = n;
+}
+
+/* Native autofill dropdown (saved card only) */
+function showAutofill(){ $("pop").classList.add("show"); }
+function hideAutofill(){ $("pop").classList.remove("show"); }
+
+/* Doodle collection panel — drops from the top-right toolbar button */
+function showPanel(){ renderPopup(); $("panel").classList.add("show"); }
+function hidePanel(){ $("panel").classList.remove("show"); }
+function togglePanel(){ $("panel").classList.contains("show") ? hidePanel() : showPanel(); }
+
+/* ---- award flow ---- */
+function grantNext(){
+  const hero = nextHero();
+  if(!hero){ showComplete(); return; }
+  collected.push(hero.id);
+  lastUnlocked = hero.id;
+  renderPopup();
+  // draw attention to the collection button
+  const btn = $("collectBtn");
+  btn.classList.remove("pulse"); void btn.offsetWidth; btn.classList.add("pulse");
+  if(collected.length === TOTAL){
+    showComplete();                 // big celebration for the final doodle
+  } else {
+    showPanel();                    // pop & update the top-right dialog
+    burst(hero.color);
+    toast(`Unlocked: ${hero.name} · ${hero.role}`);
+  }
+}
+
+function showAward(hero){
+  const n = collected.length;
+  $("awardCard").className = "award";
+  $("awardCard").innerHTML = `
+    <div class="glow"></div>
+    <div class="kicker">Doodle unlocked</div>
+    <div class="hero-stage">${hero.svg()}</div>
+    <h3>${hero.name}</h3>
+    <div class="role">${hero.role} · joined your collection</div>
+    <div class="prog">${n} of ${TOTAL} collected</div>
+    <div class="pbar"><i id="awardBar"></i></div>
+    <button id="awardClose">Keep collecting</button>
+  `;
+  $("overlay").classList.add("show");
+  requestAnimationFrame(()=>{ $("awardBar").style.width = (n/TOTAL*100)+"%"; });
+  burst(hero.color);
+  $("awardClose").onclick = ()=>$("overlay").classList.remove("show");
+}
+
+function showComplete(){
+  $("awardCard").className = "award complete";
+  $("awardCard").innerHTML = `
+    <div class="glow"></div>
+    <div class="kicker">Collection complete</div>
+    <div class="lineup">${HEROES.map(h=>h.svg()).join("")}</div>
+    <h3>Squad united!</h3>
+    <div class="role">All 5 bugdroids collected</div>
+    <div class="reward-chip">🧸 Unlocked: a free bugdroid collectible toy</div>
+    <button id="awardClose">Awesome</button>
+  `;
+  $("overlay").classList.add("show");
+  burst("#3DDC84"); setTimeout(()=>burst("#F4C430"),250); setTimeout(()=>burst("#1565C0"),500);
+  $("awardClose").onclick = ()=>$("overlay").classList.remove("show");
+}
+
+/* ---- confetti ---- */
+function burst(color){
+  const wrap = $("confetti");
+  const colors = [color,"#3DDC84","#FFD54F","#1565C0","#E53935","#fff"];
+  for(let i=0;i<46;i++){
+    const c = document.createElement("i");
+    const x = 50 + (Math.random()*40-20);
+    c.style.left = x+"%";
+    c.style.top = "44%";
+    c.style.background = colors[i%colors.length];
+    c.style.transform = `rotate(${Math.random()*360}deg)`;
+    wrap.appendChild(c);
+    const dx = (Math.random()*2-1)*260;
+    const dy = (Math.random()*-1-.2)*260;
+    const rot = Math.random()*720-360;
+    c.animate([
+      {transform:`translate(0,0) rotate(0)`,opacity:1},
+      {transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`,opacity:1,offset:.25},
+      {transform:`translate(${dx*1.3}px,${dy+520}px) rotate(${rot*1.6}deg)`,opacity:0}
+    ],{duration:1500+Math.random()*700,easing:"cubic-bezier(.2,.7,.3,1)"});
+    setTimeout(()=>c.remove(),2300);
+  }
+}
+
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+/* ============================================================
+   Wiring
+   ============================================================ */
+
+// Focusing a field clears readonly (native autofill stays suppressed) so the user can type
+["cc","exp","cvc","name"].forEach(id=>{
+  const el = $(id);
+  el.addEventListener("focus", ()=>el.removeAttribute("readonly"));
+});
+// Only the card-number field shows the saved-card dropdown (like real Chrome)
+$("cc").addEventListener("focus", showAutofill);
+
+// On landing (autofill available) -> doodle panel drops from the top-right
+setTimeout(()=>{ showPanel();
+  const btn=$("collectBtn"); btn.classList.add("pulse");
+}, 900);
+
+// Toolbar button toggles the collection panel
+$("collectBtn").onclick = (e)=>{ e.stopPropagation(); togglePanel(); };
+$("panelClose").onclick = hidePanel;
+
+// Click outside closes the open surfaces
+document.addEventListener("click", (e)=>{
+  if(!e.target.closest("#panel") && !e.target.closest("#collectBtn")) hidePanel();
+  if(!e.target.closest("#pop") && !e.target.closest("#cc") &&
+     !e.target.closest("#exp") && !e.target.closest("#cvc") && !e.target.closest("#name")) hideAutofill();
+});
+
+// Click the autofill suggestion -> fill the card (no doodle; just realism)
+$("apFill").onclick = ()=>{
+  $("cc").value = "4242 4242 4242 4242";
+  $("exp").value = "08 / 29";
+  $("cvc").value = "123";
+  $("name").value = "Yifan Zou";
+  hideAutofill();
+  toast("Card filled by Chrome Autofill");
+};
+
+// Save card -> grant a doodle (once per save)
+let savedGranted = false;
+$("saveCard").addEventListener("change", e=>{
+  if(e.target.checked && !savedGranted && nextHero()){
+    savedGranted = true;
+    setTimeout(grantNext, 280);
+  }
+});
+
+// Complete purchase -> process, show confirmation page, then update doodle dialog
+function showConfirmation(){
+  $("orderNo").textContent = "#NMB-" + Math.floor(1000 + Math.random()*8999);
+  $("urlPath").textContent = "/order/confirmed";
+  hideAutofill();
+  $("checkoutGrid").style.display = "none";
+  $("confirmPage").classList.add("show");
+}
+$("payBtn").addEventListener("click", function(){
+  if(this.classList.contains("busy")) return;
+  this.classList.add("busy");
+  this.textContent = "Processing…";
+  setTimeout(()=>{
+    this.classList.remove("busy");
+    this.textContent = "Pay $84.00";
+    showConfirmation();
+    // a beat later, update the top-right collection dialog with the new doodle
+    setTimeout(grantNext, 550);
+  }, 950);
+});
+
+// Continue shopping -> back to checkout (collection is kept)
+$("continueBtn").addEventListener("click", ()=>{
+  $("confirmPage").classList.remove("show");
+  $("checkoutGrid").style.display = "";
+  $("urlPath").textContent = "/checkout";
+  savedGranted = false;
+  $("saveCard").checked = false;
+  ["cc","exp","cvc","name"].forEach(id=>$(id).value="");
+});
+
+// Reset
+$("resetBtn").onclick = ()=>{
+  collected = []; lastUnlocked=null; savedGranted=false;
+  $("saveCard").checked=false;
+  ["cc","exp","cvc","name"].forEach(id=>$(id).value="");
+  $("confirmPage").classList.remove("show");
+  $("checkoutGrid").style.display = "";
+  $("urlPath").textContent = "/checkout";
+  $("overlay").classList.remove("show");
+  renderPopup(); hidePanel(); hideAutofill();
+  toast("Demo reset");
+};
+
+renderPopup();
+</script>
+</body>
+</html>
